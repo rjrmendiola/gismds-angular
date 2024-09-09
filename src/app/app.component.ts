@@ -12,7 +12,7 @@ import { NgxSonnerToaster } from 'ngx-sonner';
   imports: [NgClass, RouterOutlet, ResponsiveHelperComponent, NgxSonnerToaster],
 })
 export class AppComponent {
-  title = 'Angular Tailwind';
+  title = 'GIS MDS';
 
   constructor(public themeService: ThemeService) {}
 }
