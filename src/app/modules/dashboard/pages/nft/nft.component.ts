@@ -6,21 +6,16 @@ import { NftSingleCardComponent } from '../../components/nft/nft-single-card/nft
 import { NftDualCardComponent } from '../../components/nft/nft-dual-card/nft-dual-card.component';
 import { NftHeaderComponent } from '../../components/nft/nft-header/nft-header.component';
 
-import { LeafletModule } from '@asymmetrik/ngx-leaflet';
-import { tileLayer, latLng } from 'leaflet';
-import { bootstrapApplication } from '@angular/platform-browser';
-
 @Component({
     selector: 'app-nft',
     templateUrl: './nft.component.html',
     standalone: true,
     imports: [
-        NftHeaderComponent,
-        NftDualCardComponent,
-        NftSingleCardComponent,
-        NftChartCardComponent,
-        NftAuctionsTableComponent,
-        LeafletModule,
+        // NftHeaderComponent,
+        // NftDualCardComponent,
+        // NftSingleCardComponent,
+        // NftChartCardComponent,
+        // NftAuctionsTableComponent,
     ],
 })
 export class NftComponent implements OnInit {
@@ -57,14 +52,5 @@ export class NftComponent implements OnInit {
   }
 
   ngOnInit(): void {}
-
-  options = {
-    layers: [
-      tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap contributors' })
-    ],
-    zoom: 13,  // You can adjust the zoom level if needed
-    center: latLng(11.2966, 124.6783)  // Coordinates for Carigara, Leyte, Philippines
-  };
 }
 
-bootstrapApplication(NftComponent);  // Bootstrapping the application
