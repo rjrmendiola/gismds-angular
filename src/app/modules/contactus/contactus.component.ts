@@ -32,4 +32,3 @@ export class ContactusComponent  implements OnInit {
   //   this.mainContent = document.getElementById('app-contactus');
   // }
 }
-
