@@ -11,7 +11,19 @@
       class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
       <div class="mx-auto px-4 py-4 sm:px-8 lg:container">
         <!-- <router-outlet></router-outlet> -->
-        <div class="h-full w-full" leaflet [leafletOptions]="options"></div>
+        <!-- <div class="map" leaflet [leafletOptions]="options"></div> -->
+        <!-- <mgl-map
+          [style]="'https://api.maptiler.com/maps/streets/style.json?key=Brbktff9L5mO7Pzkcpen'"
+          [zoom]="[14]"
+          [center]="[11.242960285022038, 124.65378538316776]"
+        >
+        <mgl-control mglNavigation position="top-left"></mgl-control>
+        </mgl-map> -->
+        <div class="map-wrap">
+          <a href="https://www.maptiler.com" class="watermark"><img
+              src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"/></a>
+          <div class="map" #map></div>
+        </div>
       </div>
     </div>
 
