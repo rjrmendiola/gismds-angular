@@ -63,7 +63,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   // };
 
   ngAfterViewInit() {
-    const initialState = { lng: 43.530147, lat: 16.488932, zoom: 14 };
+    const initialState = { lng: 124.6833306, lat: 11.2999988, zoom: 8 };
 
     this.map = new Map({
       container: this.mapContainer.nativeElement,
@@ -74,7 +74,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.map.addControl(new NavigationControl());
     new Marker({color: "#FF0000"})
-      .setLngLat([43.530147,16.488932])
+      .setLngLat([124.6833306,11.2999988])
       .addTo(this.map);
   }
 
