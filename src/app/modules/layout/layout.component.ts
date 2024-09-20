@@ -63,7 +63,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   // };
 
   ngAfterViewInit() {
-    const initialState = { lng: 124.6833306, lat: 11.2999988, zoom: 8 };
+    const initialState = { lng: 124.6833306, lat: 11.2999988, zoom: 16 };
 
     this.map = new Map({
       container: this.mapContainer.nativeElement,
