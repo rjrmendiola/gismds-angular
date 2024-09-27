@@ -11,8 +11,9 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 // import * as Leaflet from 'leaflet';
 
 // import { NgxMapLibreGLModule } from '@maplibre/ngx-maplibre-gl';
+// import { Map, NavigationControl, Marker } from 'maplibre-gl';
 
-import { Map, NavigationControl, Marker } from 'maplibre-gl';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-layout',
@@ -25,7 +26,45 @@ import { Map, NavigationControl, Marker } from 'maplibre-gl';
 })
 export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private mainContent: HTMLElement | null = null;
-  map: Map | undefined;
+  // map: Map | undefined;
+  private map: any;
+
+  private getBarangay(map: any): void {
+    fetch('./assets/data/brgy.cariaga.geojson')
+    // fetch('./assets/data/hazard_landslide.geojson')
+    // fetch('./assets/data/water_river.geojson')
+      // fetch('./hazard_landslide.geojson')
+          .then(function(response) { return response.json() })
+          .then(function(data) {
+            console.log(data);
+              L.geoJSON(data, {
+                  // onEachFeature: function (feature, layer) {
+                  //     // does this feature have a property named popupContent?
+                  //     if (feature.properties && feature.properties.popupContent) {
+                  //         layer.bindPopup(feature.properties.popupContent);
+                  //     }
+                  // }
+              }).addTo(map)
+          })
+          .catch(error => console.log(error));
+  };
+
+  private initMap(): void {
+    this.map = L.map('map', {
+      center: [11.2966, 124.6783],
+      zoom: 16
+    }).setView([11.2977099, 124.6878707], 16);
+
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      minZoom: 3,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
+
+    tiles.addTo(this.map);
+
+    this.getBarangay(this.map);
+  }
 
   @ViewChild('map')
   private mapContainer!: ElementRef<HTMLElement>;
@@ -63,25 +102,26 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   // };
 
   ngAfterViewInit() {
-    const initialState = { lng: 124.689232, lat: 11.301082, zoom: 15.0 };
+    // const initialState = { lng: 124.689232, lat: 11.301082, zoom: 15.0 };
 
-    this.map = new Map({
-      container: this.mapContainer.nativeElement,
-      style: `https://api.maptiler.com/maps/streets/style.json?key=Brbktff9L5mO7Pzkcpen`,
-      center: [initialState.lng, initialState.lat],
-      zoom: initialState.zoom
-    });
+    // this.map = new Map({
+    //   container: this.mapContainer.nativeElement,
+    //   style: `https://api.maptiler.com/maps/streets/style.json?key=Brbktff9L5mO7Pzkcpen`,
+    //   center: [initialState.lng, initialState.lat],
+    //   zoom: initialState.zoom
+    // });
 
-    this.map.addControl(new NavigationControl());
-    new Marker({color: "#FF0000"})
-      .setLngLat([124.689232,11.301082])
-      .addTo(this.map);
-      this.map.setCenter([124.689232, 11.301082]);
+    // this.map.addControl(new NavigationControl());
+    // new Marker({color: "#FF0000"})
+    //   .setLngLat([124.689232,11.301082])
+    //   .addTo(this.map);
+    //   this.map.setCenter([124.689232, 11.301082]);
 
-    }
+    this.initMap();
+  }
 
   ngOnDestroy() {
-    this.map?.remove();
+    // this.map?.remove();
   }
 }
 
