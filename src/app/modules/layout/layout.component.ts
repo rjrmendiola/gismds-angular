@@ -28,15 +28,20 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private mainContent: HTMLElement | null = null;
   // map: Map | undefined;
   private map: any;
+  private geojson: any;
+  private mapData: any;
 
-  private getBarangay(map: any): void {
-    fetch('./assets/data/brgy.cariaga.geojson')
+  private getBarangay(map: any, style: any): void {
+    // fetch('./assets/data/brgy.cariaga.geojson')
     // fetch('./assets/data/hazard_landslide.geojson')
     // fetch('./assets/data/water_river.geojson')
-      // fetch('./hazard_landslide.geojson')
+      // fetch('./assets/data/buildings.geojson')
+      // fetch('./assets/data/Landcovermap.geojson')
+      // fetch('./assets/data/roads.geojson')
+      fetch('./assets/data/carigara/barangay.geojson')
           .then(function(response) { return response.json() })
           .then(function(data) {
-            console.log(data);
+            // return data;
               L.geoJSON(data, {
                   // onEachFeature: function (feature, layer) {
                   //     // does this feature have a property named popupContent?
@@ -44,6 +49,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
                   //         layer.bindPopup(feature.properties.popupContent);
                   //     }
                   // }
+                  style: style
               }).addTo(map)
           })
           .catch(error => console.log(error));
@@ -53,7 +59,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
     this.map = L.map('map', {
       center: [11.2966, 124.6783],
       zoom: 16
-    }).setView([11.2977099, 124.6878707], 16);
+    }).setView([11.2977099, 124.6878707], 15);
 
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -63,8 +69,65 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
 
     tiles.addTo(this.map);
 
-    this.getBarangay(this.map);
+    this.mapData = this.getBarangay(this.map, this.style);
+
+    // this.geojson = L.geoJson(this.mapData, {
+    //     style: this.style,
+    //     onEachFeature: this.onEachFeature
+    // }).addTo(this.map);
   }
+
+  getColor(d: number): string {
+    return d > 1000 ? '#800026' :
+           d > 500  ? '#BD0026' :
+           d > 200  ? '#E31A1C' :
+           d > 100  ? '#FC4E2A' :
+           d > 50   ? '#FD8D3C' :
+           d > 20   ? '#FEB24C' :
+           d > 10   ? '#FED976' :
+                      '#FFEDA0';
+  }
+
+  style(feature: any) {
+    return {
+        fillColor: this.getColor(parseInt(feature.properties.population)),
+        // fillColor: '#800026',
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+  }
+
+  highlightFeature(e: any) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+
+    layer.bringToFront();
+  }
+
+  resetHighlight(e: any) {
+    this.geojson.resetStyle(e.target);
+  }
+
+  zoomToFeature(e: any) {
+    this.map.fitBounds(e.target.getBounds());
+}
+
+  onEachFeature(feature: any, layer: any) {
+    layer.on({
+        mouseover: this.highlightFeature,
+        mouseout: this.resetHighlight,
+        click: this.zoomToFeature
+    });
+}
 
   @ViewChild('map')
   private mapContainer!: ElementRef<HTMLElement>;
@@ -77,6 +140,8 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     });
+
+    this.style = this.style.bind(this);
   }
 
   ngOnInit(): void {
