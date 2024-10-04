@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { FooterComponent } from './components/footer/footer.component';
 import { NavigationEnd, Router, RouterOutlet, Event } from '@angular/router';
 import { NavbarComponent } from './components/navbar/navbar.component';
@@ -23,6 +23,7 @@ import * as L from 'leaflet';
   // imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, LeafletModule],
   // imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, NgxMapLibreGLModule],
   imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent],
+  encapsulation: ViewEncapsulation.None,  // Set this to disable encapsulation
 })
 export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private mainContent: HTMLElement | null = null;
@@ -30,36 +31,48 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private map: any;
   private geojson: any;
   private mapData: any;
+  private legend: any;
+  private info: any;
 
-  private getBarangay(map: any, style: any): void {
+  private getBarangay(map: any): Promise<any> {
     // fetch('./assets/data/brgy.cariaga.geojson')
     // fetch('./assets/data/hazard_landslide.geojson')
     // fetch('./assets/data/water_river.geojson')
       // fetch('./assets/data/buildings.geojson')
       // fetch('./assets/data/Landcovermap.geojson')
       // fetch('./assets/data/roads.geojson')
-      fetch('./assets/data/carigara/barangay.geojson')
-          .then(function(response) { return response.json() })
-          .then(function(data) {
-            // return data;
-              L.geoJSON(data, {
-                  // onEachFeature: function (feature, layer) {
-                  //     // does this feature have a property named popupContent?
-                  //     if (feature.properties && feature.properties.popupContent) {
-                  //         layer.bindPopup(feature.properties.popupContent);
-                  //     }
-                  // }
-                  style: style
-              }).addTo(map)
+      return fetch('./assets/data/carigara/barangay.geojson')
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
           })
-          .catch(error => console.log(error));
+          // .then(function(data) {
+          //   // return data;
+          //     L.geoJSON(data, {
+          //         // onEachFeature: function (feature, layer) {
+          //         //     // does this feature have a property named popupContent?
+          //         //     if (feature.properties && feature.properties.popupContent) {
+          //         //         layer.bindPopup(feature.properties.popupContent);
+          //         //     }
+          //         // }
+          //         // style: style
+          //     }).addTo(map)
+          // })
+          .catch((error) => {
+            console.error('Error fetching the barangay data:', error);
+            throw error; // Re-throw the error for further handling if needed
+          });
   };
 
   private initMap(): void {
     this.map = L.map('map', {
       center: [11.2966, 124.6783],
-      zoom: 16
-    }).setView([11.2977099, 124.6878707], 15);
+      zoom: 14,
+      zoomControl: false,
+      attributionControl: false
+    }).setView([11.2977099, 124.6878707], 14);
 
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -69,15 +82,85 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
 
     tiles.addTo(this.map);
 
-    this.mapData = this.getBarangay(this.map, this.style);
-
-    // this.geojson = L.geoJson(this.mapData, {
-    //     style: this.style,
-    //     onEachFeature: this.onEachFeature
-    // }).addTo(this.map);
+    this.getBarangay(this.map)
+      .then((data) => {
+        this.geojson = L.geoJson(data, {
+          style: this.style,
+          onEachFeature: this.onEachFeature.bind(this)
+        }).addTo(this.map);
+      })
+      .catch((error) => {
+        console.error('Failed to load barangay data:', error);
+      });;
   }
 
-  getColor(d: number): string {
+  private addLegend(): void {
+    this.legend = new L.Control({ position: 'bottomright' });
+
+    this.legend.onAdd = (map: any) => {
+      const div = L.DomUtil.create('div', 'info legend');
+      const grades = [0, 10, 20, 50, 100, 200, 500, 1000];
+      const labels: string[] = [];
+
+      // Loop through our density intervals and generate a label with a colored square for each interval
+      for (let i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+          '<i style="background:' +
+          this.getColor(grades[i] + 1) +
+          '"></i> ' +
+          grades[i] +
+          (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+      return div;
+    };
+
+    this.legend.addTo(this.map);
+  }
+
+  private addInfoControl(): void {
+    // Create the info control
+    this.info = new L.Control({ position: 'topright' });
+
+    // Define the onAdd method for the control
+    this.info.onAdd = () => {
+      this.info._div = L.DomUtil.create('div', 'info'); // Create a div with a class "info"
+      this.info.updateInfo(); // Initialize with empty content
+      return this.info._div;
+    };
+
+    // Define the update method for the control
+    this.info.updateInfo = (props?: any) => {
+      if (!this.info._div) {
+        console.error('Info control div is not created');
+        return;
+      }
+      this.info._div.innerHTML =
+        '<h4>Carigara, Leyte Population Density</h4>' +
+        (props
+          ? `<b>${props.name}</b><br />${props.population} people / mi<sup>2</sup>`
+          : 'Hover over a barangay');
+    };
+
+    // Add the info control to the map
+    this.info.addTo(this.map);
+
+    // Add an event listener or other logic to call this.info.updateInfo when needed
+    // Example: Highlight feature logic (e.g., on mouseover)
+    // this.map.on('mouseover', (e: any) => {
+    //   const mockProps = { name: 'Barangay', population: 150 }; // Replace with actual properties
+    //   this.info.updateInfo(mockProps);
+    // });
+  }
+
+  private onEachFeature(feature: any, layer: any): void {
+    layer.on({
+      mouseover: this.highlightFeature.bind(this),
+      mouseout: this.resetHighlight.bind(this),
+      click: this.zoomToFeature.bind(this)
+    });
+  }
+
+  private getColor(d: number): string {
     return d > 1000 ? '#800026' :
            d > 500  ? '#BD0026' :
            d > 200  ? '#E31A1C' :
@@ -88,7 +171,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
                       '#FFEDA0';
   }
 
-  style(feature: any) {
+  private style(feature: any) {
     return {
         fillColor: this.getColor(parseInt(feature.properties.population)),
         // fillColor: '#800026',
@@ -100,34 +183,29 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-  highlightFeature(e: any) {
+  private highlightFeature(e: any) {
     var layer = e.target;
 
     layer.setStyle({
         weight: 5,
-        color: '#666',
+        color: '#FFFF99',
         dashArray: '',
         fillOpacity: 0.7
     });
 
     layer.bringToFront();
+
+    this.info.updateInfo(layer.feature.properties);
   }
 
-  resetHighlight(e: any) {
+  private resetHighlight(e: any) {
     this.geojson.resetStyle(e.target);
+    this.info.updateInfo();
   }
 
-  zoomToFeature(e: any) {
+  private zoomToFeature(e: any) {
     this.map.fitBounds(e.target.getBounds());
-}
-
-  onEachFeature(feature: any, layer: any) {
-    layer.on({
-        mouseover: this.highlightFeature,
-        mouseout: this.resetHighlight,
-        click: this.zoomToFeature
-    });
-}
+  }
 
   @ViewChild('map')
   private mapContainer!: ElementRef<HTMLElement>;
@@ -183,6 +261,8 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
     //   this.map.setCenter([124.689232, 11.301082]);
 
     this.initMap();
+    this.addLegend();
+    this.addInfoControl();
   }
 
   ngOnDestroy() {
