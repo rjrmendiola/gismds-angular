@@ -1,18 +1,16 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  OnDestroy,
+  ViewEncapsulation,
+} from '@angular/core';
 import { FooterComponent } from './components/footer/footer.component';
 import { NavigationEnd, Router, RouterOutlet, Event } from '@angular/router';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
-
-// import { LeafletModule } from '@asymmetrik/ngx-leaflet';
-// import { tileLayer, latLng } from 'leaflet';
-// import { bootstrapApplication } from '@angular/platform-browser';
-
-// import * as Leaflet from 'leaflet';
-
-// import { NgxMapLibreGLModule } from '@maplibre/ngx-maplibre-gl';
-// import { Map, NavigationControl, Marker } from 'maplibre-gl';
-
 import * as L from 'leaflet';
 
 @Component({
@@ -20,97 +18,134 @@ import * as L from 'leaflet';
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
   standalone: true,
-  // imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, LeafletModule],
-  // imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, NgxMapLibreGLModule],
   imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent],
-  encapsulation: ViewEncapsulation.None,  // Set this to disable encapsulation
+  encapsulation: ViewEncapsulation.None,
 })
 export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private mainContent: HTMLElement | null = null;
-  // map: Map | undefined;
   private map: any;
-  private geojson: any;
-  private mapData: any;
   private legend: any;
   private info: any;
 
-  private getBarangay(map: any): Promise<any> {
-    // fetch('./assets/data/brgy.cariaga.geojson')
-    // fetch('./assets/data/hazard_landslide.geojson')
-    // fetch('./assets/data/water_river.geojson')
-      // fetch('./assets/data/buildings.geojson')
-      // fetch('./assets/data/Landcovermap.geojson')
-      // fetch('./assets/data/roads.geojson')
-      return fetch('./assets/data/carigara/barangay.geojson')
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error('Network response was not ok');
-            }
-            return response.json();
-          })
-          // .then(function(data) {
-          //   // return data;
-          //     L.geoJSON(data, {
-          //         // onEachFeature: function (feature, layer) {
-          //         //     // does this feature have a property named popupContent?
-          //         //     if (feature.properties && feature.properties.popupContent) {
-          //         //         layer.bindPopup(feature.properties.popupContent);
-          //         //     }
-          //         // }
-          //         // style: style
-          //     }).addTo(map)
-          // })
-          .catch((error) => {
-            console.error('Error fetching the barangay data:', error);
-            throw error; // Re-throw the error for further handling if needed
-          });
+  // Dictionary to store GeoJSON layers
+  private layers: { [key: string]: L.GeoJSON } = {};
+  geojson: any;
+
+  // Layer visibility dictionary
+  layerVisibility: { [key: string]: boolean } = {
+    barangay: false,
+    water_river: false,
+    buildings: false,
+    landcover: true, // Set landcover to true to show it by default
+    roads: false,
   };
+
+  // Define colors for each layer
+  private layerColors: { [key: string]: string } = {
+    barangay: '#FFEDA0',
+    water_river: '#1E90FF',
+    buildings: '#B22222',
+    landcover: '#32CD32',
+    roads: '#FFA500',
+  };
+
+  private fetchGeoJson(url: string): Promise<any> {
+    return fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        console.error(`Error fetching the GeoJSON data from ${url}:`, error);
+        throw error;
+      });
+  }
 
   private initMap(): void {
     this.map = L.map('map', {
       center: [11.2966, 124.6783],
       zoom: 14,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: false,
     }).setView([11.2977099, 124.6878707], 14);
 
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       minZoom: 3,
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      opacity: 0.3,
     });
 
     tiles.addTo(this.map);
 
-    this.getBarangay(this.map)
-      .then((data) => {
-        this.geojson = L.geoJson(data, {
-          style: this.style,
-          onEachFeature: this.onEachFeature.bind(this)
-        }).addTo(this.map);
-      })
-      .catch((error) => {
-        console.error('Failed to load barangay data:', error);
-      });;
+    // Load GeoJSON data for different layers
+    this.loadGeoJsonLayer('barangay', './assets/data/carigara/barangay.geojson'); // Updated fetch path
+    this.loadGeoJsonLayer('water_river', './assets/data/water_river.geojson');
+    this.loadGeoJsonLayer('buildings', './assets/data/buildings.geojson');
+    this.loadGeoJsonLayer('landcover', './assets/data/Landcovermap.geojson');
+    this.loadGeoJsonLayer('roads', './assets/data/roads.geojson');
   }
 
+  // Method to load a GeoJSON layer and add it to the map
+  private loadGeoJsonLayer(layerKey: string, url: string) {
+    this.fetchGeoJson(url)
+      .then((data) => {
+        const layer = L.geoJson(data, {
+          style: (feature) => this.style(feature, layerKey), // Pass layerKey to style
+          onEachFeature: this.onEachFeature.bind(this),
+        });
+        this.layers[layerKey] = layer; // Store layer in dictionary
+
+        // Only add layer to map if it is set to visible
+        if (this.layerVisibility[layerKey]) {
+          layer.addTo(this.map); // Initially add the layer to the map if visible
+        }
+      })
+      .catch((error) => {
+        console.error(`Failed to load GeoJSON from ${url}:`, error);
+      });
+  }
+
+  // Method to toggle layer visibility based on checkbox state
+  public toggleLayer(layerKey: string): void {
+    const layer = this.layers[layerKey];
+    this.layerVisibility[layerKey] = !this.layerVisibility[layerKey]; // Toggle visibility state
+
+    if (this.map.hasLayer(layer)) {
+      this.map.removeLayer(layer);
+    } else {
+      this.map.addLayer(layer);
+    }
+
+    this.addLegend(); // Update the legend when toggling layers
+  }
+
+  // Add legend with colors corresponding to each GeoJSON layer
   private addLegend(): void {
+    if (this.legend) {
+      this.map.removeControl(this.legend); // Remove existing legend
+    }
+
     this.legend = new L.Control({ position: 'bottomright' });
 
-    this.legend.onAdd = (map: any) => {
+    this.legend.onAdd = () => {
       const div = L.DomUtil.create('div', 'info legend');
-      const grades = [0, 10, 20, 50, 100, 200, 500, 1000];
       const labels: string[] = [];
 
-      // Loop through our density intervals and generate a label with a colored square for each interval
-      for (let i = 0; i < grades.length; i++) {
-        div.innerHTML +=
-          '<i style="background:' +
-          this.getColor(grades[i] + 1) +
-          '"></i> ' +
-          grades[i] +
-          (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      // Loop through the layer colors and create a legend item for each visible layer
+      for (const layerKey in this.layerColors) {
+        if (this.layerColors.hasOwnProperty(layerKey) && this.layerVisibility[layerKey]) {
+          const color = this.layerColors[layerKey];
+          const layerName = layerKey.charAt(0).toUpperCase() + layerKey.slice(1); // Capitalize the layer name
+          labels.push(
+            `<i style="background:${color}"></i> ${layerName}`
+          );
+        }
       }
+
+      div.innerHTML = labels.join('<br>');
       return div;
     };
 
@@ -118,17 +153,14 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private addInfoControl(): void {
-    // Create the info control
     this.info = new L.Control({ position: 'topright' });
 
-    // Define the onAdd method for the control
     this.info.onAdd = () => {
-      this.info._div = L.DomUtil.create('div', 'info'); // Create a div with a class "info"
-      this.info.updateInfo(); // Initialize with empty content
+      this.info._div = L.DomUtil.create('div', 'info');
+      this.info.updateInfo();
       return this.info._div;
     };
 
-    // Define the update method for the control
     this.info.updateInfo = (props?: any) => {
       if (!this.info._div) {
         console.error('Info control div is not created');
@@ -141,22 +173,14 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
           : 'Hover over a barangay');
     };
 
-    // Add the info control to the map
     this.info.addTo(this.map);
-
-    // Add an event listener or other logic to call this.info.updateInfo when needed
-    // Example: Highlight feature logic (e.g., on mouseover)
-    // this.map.on('mouseover', (e: any) => {
-    //   const mockProps = { name: 'Barangay', population: 150 }; // Replace with actual properties
-    //   this.info.updateInfo(mockProps);
-    // });
   }
 
   private onEachFeature(feature: any, layer: any): void {
     layer.on({
       mouseover: this.highlightFeature.bind(this),
       mouseout: this.resetHighlight.bind(this),
-      click: this.zoomToFeature.bind(this)
+      click: this.zoomToFeature.bind(this),
     });
   }
 
@@ -171,36 +195,41 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
                       '#FFEDA0';
   }
 
-  private style(feature: any) {
+  // Updated style method to use layer-specific colors
+  private style(feature: any, layerKey: string) {
     return {
-        fillColor: this.getColor(parseInt(feature.properties.population)),
-        // fillColor: '#800026',
-        weight: 2,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
-        fillOpacity: 0.7
+      fillColor: this.layerColors[layerKey], // Use the layer-specific color
+      weight: 2,
+      opacity: 1,
+      color: 'white', // Border color
+      dashArray: '3',
+      fillOpacity: 0.7,
     };
   }
 
   private highlightFeature(e: any) {
-    var layer = e.target;
+    const layer = e.target;
 
     layer.setStyle({
-        weight: 5,
-        color: '#FFFF99',
-        dashArray: '',
-        fillOpacity: 0.7
+      weight: 5,
+      color: '#FFFF99',
+      dashArray: '',
+      fillOpacity: 0.7,
     });
 
     layer.bringToFront();
-
     this.info.updateInfo(layer.feature.properties);
   }
 
   private resetHighlight(e: any) {
-    this.geojson.resetStyle(e.target);
-    this.info.updateInfo();
+    const layer = e.target;
+
+    // Find the key of the layer that is currently being highlighted
+    const layerKey = Object.keys(this.layers).find(key => this.layers[key] === layer);
+    if (layerKey) {
+      this.layers[layerKey].resetStyle(layer); // Reset style using the specific layer
+    }
+    this.info.updateInfo(); // Clear the info panel
   }
 
   private zoomToFeature(e: any) {
@@ -218,64 +247,21 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     });
-
-    this.style = this.style.bind(this);
   }
 
   ngOnInit(): void {
     this.mainContent = document.getElementById('main-content');
   }
 
-  // options = {
-  //   layers: [
-  //     tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap contributors' })
-  //   ],
-  //   zoom: 13,
-  //   center: latLng(11.2966, 124.6783),
-  //   zoomControl: false,  // Disable the default zoom control buttons
-  //   scrollWheelZoom: false,  // Disable zooming with the scroll wheel
-  //   doubleClickZoom: false,  // Disable zooming on double-click
-  //   dragging: false  // Optionally disable dragging
-  // };
-
-  // options: Leaflet.MapOptions = {
-  //   layers: getLayers(),
-  //   zoom: 12,
-  //   center: new Leaflet.LatLng(43.530147, 16.488932)
-  // };
-
   ngAfterViewInit() {
-    // const initialState = { lng: 124.689232, lat: 11.301082, zoom: 15.0 };
-
-    // this.map = new Map({
-    //   container: this.mapContainer.nativeElement,
-    //   style: `https://api.maptiler.com/maps/streets/style.json?key=Brbktff9L5mO7Pzkcpen`,
-    //   center: [initialState.lng, initialState.lat],
-    //   zoom: initialState.zoom
-    // });
-
-    // this.map.addControl(new NavigationControl());
-    // new Marker({color: "#FF0000"})
-    //   .setLngLat([124.689232,11.301082])
-    //   .addTo(this.map);
-    //   this.map.setCenter([124.689232, 11.301082]);
-
     this.initMap();
-    this.addLegend();
+    this.addLegend(); // Adding legend when the map is initialized
     this.addInfoControl();
   }
 
   ngOnDestroy() {
-    // this.map?.remove();
+    if (this.map) {
+      this.map.remove();
+    }
   }
 }
-
-// export const getLayers = (): Leaflet.Layer[] => {
-//   return [
-//     new Leaflet.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-//       attribution: '&copy; OpenStreetMap contributors'
-//     } as Leaflet.TileLayerOptions),
-//   ] as Leaflet.Layer[];
-// };
-
-// bootstrapApplication(LayoutComponent);  // Bootstrapping the application

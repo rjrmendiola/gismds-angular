@@ -5,38 +5,45 @@
   <div class="flex grow flex-col content-start overflow-hidden bg-card">
     <!-- Header -->
     <app-navbar></app-navbar>
-    <!-- main content -->
+
+    <!-- Main content -->
     <div
       id="main-content"
-      class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
-      <!-- <div class="mx-auto px-4 py-4 sm:px-8 lg:container"> -->
-      <div>
-        <!-- <router-outlet></router-outlet> -->
-        <!-- <div class="map" leaflet [leafletOptions]="options"></div> -->
-        <!-- <mgl-map
-          [style]="'https://api.maptiler.com/maps/streets/style.json?key=Brbktff9L5mO7Pzkcpen'"
-          [zoom]="[14]"
-          [center]="[11.242960285022038, 124.65378538316776]"
-        >
-        <mgl-control mglNavigation position="top-left"></mgl-control>
-        </mgl-map> -->
-        <!-- <div class="map-wrap">
-          <a href="https://www.maptiler.com" class="watermark"><img
-              src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"/></a>
-          <div class="map" #map></div>
-        </div> -->
-        <div class="map-container">
-          <div class="map-frame">
-            <div id="map"></div>
-          </div>
+      class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted"
+    >
+      <div class="map-container">
+        <!-- Checkboxes to toggle visibility of GeoJSON layers -->
+        <div class="controls">
+          <label>
+            <input type="checkbox" (change)="toggleLayer('barangay')">
+            Show Barangays
+          </label>
+          <label>
+            <input type="checkbox" (change)="toggleLayer('water_river')">
+            Show Water Bodies
+          </label>
+          <label>
+            <input type="checkbox" (change)="toggleLayer('buildings')">
+            Show Buildings
+          </label>
+          <label>
+            <input type="checkbox" (change)="toggleLayer('landcover')">
+            Show Land Cover
+          </label>
+          <label>
+            <input type="checkbox" (change)="toggleLayer('roads')">
+            Show Roads
+          </label>
+        </div>
+
+        <!-- Map Frame -->
+        <div class="map-frame">
+          <div id="map" style="height: 500px;"></div>
         </div>
       </div>
     </div>
 
-    <!-- footer -->
+    <!-- Footer -->
     <app-footer></app-footer>
-
-    <!-- Bottom bar -->
-    <!-- <app-bottom-navbar></app-bottom-navbar> -->
   </div>
 </div>
